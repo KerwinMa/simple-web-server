@@ -2,12 +2,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.text.SimpleDateFormat;
+import java.nio.file.*;
 
 public final class WebServer {
 
 	private final static int PORT = 8080;
 	// FILEPATH points to root of web server files
-	private final static String FILEPATH = "";
+	private final static String FILEPATH = "/home/soft/scripts/webserver/";
 	private final static String SERVERSTRING = "Server: Jastonex/0.1";
 
 	// Muh relatively hidden Java techniques
@@ -36,6 +37,19 @@ public final class WebServer {
 		if(file.equals(""))
 			file = "index.html";	
 		String mime = file.substring(file.indexOf(".")+1);		
+
+		// Return if trying to load file outside of web server root
+		Path path = Paths.get(FILEPATH, file);
+		if(!path.startsWith(FILEPATH)) {
+			System.out.println(" (Dropping connection) ");
+			return;
+		}
+
+		// Return if file contains potentialy bad string
+		if(file. contains(";") || file.contains("*"))	{
+			System.out.println(" (Dropping connection)");
+			return;
+		}
 
 		if(method.equals("GET")) {
 			try {
