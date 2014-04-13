@@ -2,12 +2,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.text.SimpleDateFormat;
+import java.nio.file.*;
 
 public final class WebServer {
 
 	private final static int PORT = 8080;
 	// FILEPATH points to root of web server files
-	private final static String FILEPATH = "";
+	private final static String FILEPATH = "/home/soft/scripts/webserver/";
 	private final static String SERVERSTRING = "Server: Jastonex/0.1";
 
 	// Muh relatively hidden Java techniques
@@ -21,10 +22,11 @@ public final class WebServer {
 		put("png", "image/png");
 	}};
 
-	private static void respondHeader(String code, String mime, DataOutputStream out) throws Exception {
+	private static void respondHeader(String code, String mime, int length, DataOutputStream out) throws Exception {
 		System.out.println(" (" + code + ") ");
 		out.writeBytes("HTTP/1.0 " + code + " OK\r\n");
-		out.writeBytes("Content-Type: " + mimeMap.get(mime) + "\r\n"); 
+		out.writeBytes("Content-Type: " + mimeMap.get(mime) + "\r\n");
+		out.writeBytes("Content-Length: " + length + "\r\n"); 
 		out.writeBytes(SERVERSTRING);
 		out.writeBytes("\r\n\r\n");
 	}
@@ -37,6 +39,19 @@ public final class WebServer {
 			file = "index.html";	
 		String mime = file.substring(file.indexOf(".")+1);		
 
+		// Return if trying to load file outside of web server root
+		Path path = Paths.get(FILEPATH, file);
+		if(!path.startsWith(FILEPATH)) {
+			System.out.println(" (Dropping connection) ");
+			return;
+		}
+
+		// Return if file contains potentialy bad string
+		if(file. contains(";") || file.contains("*"))	{
+			System.out.println(" (Dropping connection)");
+			return;
+		}
+
 		if(method.equals("GET")) {
 			try {
 				// Open file
@@ -46,7 +61,7 @@ public final class WebServer {
 				is.read(fileBytes);
 	
 				// Send header
-				respondHeader("200", mime, out);
+				respondHeader("200", mime, fileBytes.length, out);
 				
 				// Write content of file
 				out.write(fileBytes);
@@ -58,19 +73,20 @@ public final class WebServer {
 					InputStream is = new FileInputStream(FILEPATH+"404.html");
 					fileBytes = new byte[is.available()];
 					is.read(fileBytes);
-					respondHeader("404", "html", out);
+					respondHeader("404", "html", fileBytes.length, out);
 					out.write(fileBytes);
 				} catch(FileNotFoundException e2) {
-					respondHeader("404", "html", out);
-					out.write(("404 File Not Found").getBytes());
+					String responseString = "404 File Not Found";
+					respondHeader("404", "html", responseString.length(), out);
+					out.write(responseString.getBytes());
 				}
 			}
 		} else if(method.equals("POST")) {
 
 		} else if(method.equals("HEAD")) {
-			respondHeader("200", "html", out);
+			respondHeader("200", "html", 0, out);
 		} else {
-			respondHeader("501", "html", out);
+			respondHeader("501", "html", 0, out);
 		}
 	}
 
@@ -121,3 +137,4 @@ public final class WebServer {
 		}
 	}
 }
+
